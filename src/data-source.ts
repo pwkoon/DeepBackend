@@ -1,7 +1,7 @@
 import "reflect-metadata"
 import { DataSource } from "typeorm"
-import { User } from "./entity/User"
-import { Post } from "./entity/Post"
+// import { User } from "./entity/User"
+// import { Post } from "./entity/Post"
 
 export const AppDataSource = new DataSource({
     type: "mysql",
@@ -12,15 +12,15 @@ export const AppDataSource = new DataSource({
     database: "deep_blog",
     synchronize: true,
     logging: false,
-    entities: [User, Post],
-    migrations: [],
-    subscribers: [],
+    entities: [ 
+        "src/entity/*.ts"
+     ],
+    migrations: [
+        "src/migration/*.ts"
+    ],
+    subscribers: [
+        "src/subscriber/*.ts"
+    ],
+
 })
 
-// AppDataSource.initialize()
-//     .then(() => {
-//         console.log("Data Source has been initialized!")
-//     })
-//     .catch((err) => {
-//         console.error("Error during Data Source initialization", err)
-//     })

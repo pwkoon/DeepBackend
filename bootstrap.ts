@@ -2,7 +2,6 @@ import { AppDataSource } from "./src/data-source";
 import { Post } from "./src/entity/Post";
 import { User } from "./src/entity/User";
 
-
 export const Bootstrap = async () => {
     const userRepo = AppDataSource.getRepository(User);
     const user = userRepo.create({ firstName: "Jun", lastName: "Puah", email: "jun@gmail.com", age: 100 })
@@ -10,6 +9,12 @@ export const Bootstrap = async () => {
         console.log("Error: ", err);
     });
     console.log("New user saved!", user);
+    
+    const user1 = userRepo.create({ firstName: "John", lastName: "Legend", email: "legend@gmail.com", age: 80 })
+    await userRepo.save(user1).catch((err) => {
+        console.log("Error: ", err);
+    });
+    console.log("New user saved!", user1);
 
     const postRepo = AppDataSource.getRepository(Post);
     const post = new Post();
