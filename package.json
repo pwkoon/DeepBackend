@@ -25,7 +25,8 @@
    "scripts": {
       "start": "tsc && ts-node-esm src/app.ts",
       "typeorm": "typeorm-ts-node-commonjs",
-      "server": "nodemon --exec ts-node-esm src/app.ts",
+      "server": "nodemon --exec ts-node-esm src/server.ts",
+      "authserver": "nodemon --exec ts-node-esm src/authServer.ts",
       "migration:generate": "typeorm migration:create -n",
       "migration:run": "ts-node ./node_modules/typeorm/cli.js migration:run",
       "migration:revert": "ts-node ./node_modules/typeorm/cli.js migration:revert"
