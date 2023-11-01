@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken'
 import { AppDataSource } from "./data-source"
 import { User } from "./entity/User"
 import { Post } from "./entity/Post"
+import { userInfo } from "os";
 
 require('dotenv').config()
 
@@ -83,7 +84,7 @@ app.get("/posts", authenticateToken, async function (req: Request, res: Response
     res.json(posts)
 })
 
-app.post("/posts", async function (req: Request, res: Response) {
+app.post("/posts", authenticateToken,  async function (req: Request, res: Response) {
     // const firstUser = await AppDataSource
     // .getRepository(User)
     // .createQueryBuilder("user")
@@ -94,9 +95,14 @@ app.post("/posts", async function (req: Request, res: Response) {
     // const post = await AppDataSource.getRepository(Post).create({...postData, firstUser})
     // const results = await AppDataSource.getRepository(Post).save(post)
     // return res.send(results) 
-    
+    const currentUser = (req as any).user
+    if (!currentUser) {
+        console.log("You have to log in first!")
+    }
+    // const { user } = req.body
     const post = await AppDataSource.getRepository(Post).create(req.body)
-    const results = await AppDataSource.getRepository(Post).save(post)
+    //check the current login user details
+    const results = await AppDataSource.getRepository(Post).save({...post, user: currentUser})
     return res.send(results)
 })
 
@@ -126,7 +132,7 @@ app.delete("/posts/:id", async function (req: Request, res: Response) {
 })
 
 function generateAccessToken(user) {
-  return jwt.sign({ user }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '45s' })
+  return jwt.sign({ user }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
 }
 
 function authenticateToken(req, res, next) {
