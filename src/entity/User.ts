@@ -8,16 +8,13 @@ export class User {
     id: string;
 
     @Column()
-    firstName: string;
-
-    @Column()
-    lastName: string;
+    username: string;
 
     @Column()
     email: string;
 
     @Column()
-    age: number;
+    password: string;
 
     @OneToMany((type) => Post, (post) => post.user)
     posts: Promise<Post[]>; // promise here for lazy loading 
