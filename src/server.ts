@@ -1,12 +1,11 @@
 import express from "express"
-import bcrypt from "bcrypt";
 import jwt from 'jsonwebtoken'
 import { Request, Response } from "express"
 import { AppDataSource } from "./data-source"
-import { User } from "./entity/User"
 import { Post } from "./entity/Post"
 
 require('dotenv').config()
+const cors = require('cors')
 
 AppDataSource
     .initialize()
@@ -19,6 +18,7 @@ AppDataSource
 
 const app = express()
 app.use(express.json())
+app.use(cors())
                   
 app.get("/posts", authenticateToken, async function (req: Request, res: Response) {
     const posts = await AppDataSource.getRepository(Post).find()
@@ -73,4 +73,4 @@ function authenticateToken(req, res, next) {
     })
 }
 
-app.listen(3000)
+app.listen(4000)
