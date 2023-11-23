@@ -17,5 +17,6 @@ export class User {
     password: string;
 
     @OneToMany((type) => Post, (post) => post.user)
-    posts: Promise<Post[]>; // promise here for lazy loading 
+    // posts: Promise<Post[]>; // promise here for lazy loading 
+    posts: Post[]; // promise here for lazy loading 
 }

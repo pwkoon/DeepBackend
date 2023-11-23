@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken'
 import { Request, Response } from "express"
 import { AppDataSource } from "./data-source"
 import { User } from "./entity/User"
+// import { savePreviousUrl } from "./server";
 
 require('dotenv').config()
 const cookieParser = require('cookie-parser');
@@ -47,6 +48,12 @@ app.post("/register", async function (req: Request, res: Response) {
     }
 })
 
+// app.get('/login', (req, res) => {
+//     // Redirect to the login page with the previous URL as a query parameter
+//     const previousUrl = req.session.previousUrl || '/';
+//     res.redirect(`/login?returnTo=${encodeURIComponent(previousUrl)}`);
+// });
+
 app.post('/login', async (req, res) => {
     try {
         const userExist = await AppDataSource.getRepository(User).findOneBy({email: req.body.email})
@@ -62,8 +69,6 @@ app.post('/login', async (req, res) => {
                 // res.cookie('jwtToken', accessToken, { httpOnly: true, secure: true }) //{ httpOnly: true, maxAge: 3600000 }
                 // window.localStorage.setItem("accessToken",JSON.stringify(accessToken))                
                 res.json({ user: user, accessToken: accessToken, refreshToken: refreshToken })
-                const backURL = req.header('Referer') || '/';
-                res.json({redir: backURL});
             }
         }
     } catch (error) {
@@ -96,5 +101,10 @@ app.post('/refresh-token', async (req, res) => {
 function generateAccessToken(user) {
     return jwt.sign({ user }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
 }
+
+// function savePreviousUrl(req, res, next) {
+//     req.session.previousUrl = req.originalUrl;
+//     next();
+// };
   
 app.listen(4001)

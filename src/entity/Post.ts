@@ -13,5 +13,6 @@ export class Post {
     content: string;
 
     @ManyToOne((type) => User, (user) => user.posts)
-    user: Promise<User>; // promise here for lazy loading 
+    // user: Promise<User>; // promise here for lazy loading 
+    user: User; // promise here for lazy loading 
 }
