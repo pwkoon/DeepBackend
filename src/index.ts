@@ -1,4 +1,4 @@
-import { Bootstrap, find } from "../bootstrap"
+// import { Bootstrap, find } from "../bootstrap"
 import { AppDataSource } from "./data-source"
 import { User } from "./entity/User"
 
@@ -16,11 +16,11 @@ AppDataSource.initialize().then(async () => {
     // console.log("Loaded users: ", users)
 
     // console.log("Here you can setup and run express / fastify / any other framework.")
-    await Bootstrap().catch((err) => {
-        console.log(err);
-    })
+    // await Bootstrap().catch((err) => {
+    //     console.log(err);
+    // })
 
-    await find().catch((err) => {
-        console.log(err);
-    })
+    // await find().catch((err) => {
+    //     console.log(err);
+    // })
 }).catch(error => console.log(error))
