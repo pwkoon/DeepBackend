@@ -43,7 +43,7 @@ app.post("/posts", authenticateToken, async function (req: Request, res: Respons
     return res.send(results)
 })
 
-app.put("/posts/:id", async function (req: Request, res: Response) {
+app.put("/posts/:id", authenticateToken, async function (req: Request, res: Response) {
     const post = await AppDataSource.getRepository(Post).findOneBy({
         id: req.params.id,
     })
