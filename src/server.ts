@@ -3,14 +3,36 @@ import jwt from 'jsonwebtoken'
 import { AppDataSource } from "./data-source"
 import { Post } from "./entity/Post"
 import { User } from "./entity/User"
+import crypto from 'crypto'
+import sharp from "sharp"
+
+import multer from 'multer'
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3"
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 require('dotenv').config()
+
 const cors = require('cors')
-// const multer  = require('multer')
-// const upload = multer({ dest: 'uploads/' })
+const storage = multer.memoryStorage()
+const upload = multer({ storage: storage })
 const app = express()
 app.use(express.json())
 app.use(cors())
+
+const randomImageName = (bytes = 32) => crypto.randomBytes(16).toString('hex')
+
+const bucketName = process.env.BUCKET_NAME
+const bucketRegion = process.env.BUCKET_REGION
+const accessKey = process.env.ACCESS_KEY
+const secretAccessKey = process.env.SECRET_ACCESS_KEY
+
+const s3 = new S3Client({
+    credentials: {
+        accessKeyId: accessKey,
+        secretAccessKey: secretAccessKey,
+    },
+    region: bucketRegion,
+})
 
 AppDataSource
     .initialize()
@@ -25,8 +47,17 @@ app.get("/posts", authenticateToken, async function (req: Request, res: Response
     const posts = await AppDataSource.getRepository(Post).find({ relations: {
         user: true,
     },})
+    for (const post of posts) {
+        const getObjectParams = {
+            Bucket: bucketName,
+            Key: post.imageName,
+        }
+        const command = new GetObjectCommand(getObjectParams);
+        const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+        post.photo = url
+        console.log("url", url)
+    }
     res.json(posts)
-    console.log(posts)
 })
 
 app.get("/posts/:id", authenticateToken, async function (req: Request, res: Response) {
@@ -36,9 +67,21 @@ app.get("/posts/:id", authenticateToken, async function (req: Request, res: Resp
     res.json(post)
 })
 
-app.post("/posts", authenticateToken, async function (req: Request, res: Response) {
+app.post("/posts", authenticateToken, upload.single('image'), async function (req: Request, res: Response) {
     const user = await AppDataSource.getRepository(User).findOneBy({email: req.user.user.email})
-    const post = await AppDataSource.getRepository(Post).create(req.body)
+    const buffer = await sharp(req.file.buffer).resize({height: 1200, width: 850, fit: "contain"}).toBuffer()
+    const imageName = randomImageName();
+    const params = {
+        Bucket: bucketName,
+        Key: imageName,
+        Body: buffer,
+        ContentType: req.file.mimetype,
+    }
+    const command = new PutObjectCommand(params)
+    await s3.send(command)
+
+    const photo = `https://${bucketName}.s3-${bucketRegion}.amazonaws.com/${imageName}`;
+    const post = await AppDataSource.getRepository(Post).create({title: req.body.title, content: req.body.content, photo: photo, imageName: imageName})
     const results = await AppDataSource.getRepository(Post).save({...post, user: user})
     return res.send(results)
 })
