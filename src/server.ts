@@ -69,7 +69,7 @@ app.get("/posts/:id", authenticateToken, async function (req: Request, res: Resp
 
 app.post("/posts", authenticateToken, upload.single('image'), async function (req: Request, res: Response) {
     const user = await AppDataSource.getRepository(User).findOneBy({email: req.user.user.email})
-    const buffer = await sharp(req.file.buffer).resize({height: 1200, width: 850, fit: "contain"}).toBuffer()
+    const buffer = await sharp(req.file.buffer).resize({height: 600, width: 600, fit: "fill"}).toBuffer()
     const imageName = randomImageName();
     const params = {
         Bucket: bucketName,
@@ -111,8 +111,18 @@ app.get("/user/posts", authenticateToken, async function (req: Request, res: Res
     const posts = await AppDataSource
     .getRepository(Post)
     .createQueryBuilder("post")
+    .leftJoinAndSelect("post.user", "user")  // Assuming "user" is the property name in the Post entity that represents the User relation
     .where("post.userId = :userId", { userId })
     .getMany();
+    for (const post of posts) {
+        const getObjectParams = {
+            Bucket: bucketName,
+            Key: post.imageName,
+        }
+        const command = new GetObjectCommand(getObjectParams);
+        const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+        post.photo = url
+    }
     return res.json(posts);
 });
 
