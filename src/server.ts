@@ -1,14 +1,15 @@
 import express, { Request, Response } from "express"
 import jwt from 'jsonwebtoken'
-import { AppDataSource } from "./data-source"
-import { Post } from "./entity/Post"
-import { User } from "./entity/User"
 import crypto from 'crypto'
 import sharp from "sharp"
-
+import moment from "moment-timezone";
 import multer from 'multer'
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { AppDataSource } from "./data-source"
+import { Post } from "./entity/Post"
+import { User } from "./entity/User"
+import { time } from "console";
 
 require('dotenv').config()
 
@@ -53,10 +54,17 @@ app.get("/posts", authenticateToken, async function (req: Request, res: Response
             Key: post.imageName,
         }
         const command = new GetObjectCommand(getObjectParams);
-        const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+        const url = await getSignedUrl(s3, command, { expiresIn: 6400 });
         post.photo = url
-        console.log("url", url)
     }
+    for (const post of posts) {
+        const timestamp = moment(post.created_at).tz("Asia/Singapore").format("YYYY-MM-DD HH:mm:ss")
+        post.created_at = timestamp
+        post.updated_at = timestamp
+    }
+    // const seventh = moment(posts[8].created_at);
+    // console.log("from get api timestamp", seventh.tz("Asia/Singapore").format("YYYY-MM-DD HH:mm:ss"))
+    // console.log("from get api", posts[0])
     res.json(posts)
 })
 
@@ -80,9 +88,10 @@ app.post("/posts", authenticateToken, upload.single('image'), async function (re
     const command = new PutObjectCommand(params)
     await s3.send(command)
 
-    const photo = `https://${bucketName}.s3-${bucketRegion}.amazonaws.com/${imageName}`;
+    const photo = await `https://${bucketName}.s3-${bucketRegion}.amazonaws.com/${imageName}`;
     const post = await AppDataSource.getRepository(Post).create({title: req.body.title, content: req.body.content, photo: photo, imageName: imageName})
     const results = await AppDataSource.getRepository(Post).save({...post, user: user})
+    // console.log("from create api backend", post)
     return res.send(results)
 })
 
@@ -90,8 +99,13 @@ app.put("/posts/:id", authenticateToken, async function (req: Request, res: Resp
     const post = await AppDataSource.getRepository(Post).findOneBy({
         id: req.params.id,
     })
+    console.log("checking post before update", post)
+    const timestamp = moment(new Date()).tz("Asia/Singapore").format("YYYY-MM-DD HH:mm:ss")
+    post.created_at = timestamp
+    post.updated_at = timestamp
     AppDataSource.getRepository(Post).merge(post, req.body)
     const results = await AppDataSource.getRepository(Post).save(post)
+    console.log("checking updating post", results)
     return res.send(results)
 })
 
@@ -120,8 +134,13 @@ app.get("/user/posts", authenticateToken, async function (req: Request, res: Res
             Key: post.imageName,
         }
         const command = new GetObjectCommand(getObjectParams);
-        const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+        const url = await getSignedUrl(s3, command, { expiresIn: 6400 });
         post.photo = url
+    }
+    for (const post of posts) {
+        const timestamp = moment(post.created_at).tz("Asia/Singapore").format("YYYY-MM-DD HH:mm:ss")
+        post.created_at = timestamp
+        post.updated_at = timestamp
     }
     return res.json(posts);
 });
@@ -133,8 +152,6 @@ function authenticateToken(req, res, next) {
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
         console.log(err)
         if (err) return res.sendStatus(403)
-        console.log(req)
-        console.log("print from authenticatoken", user)
         req.user = user
         next()
     })
