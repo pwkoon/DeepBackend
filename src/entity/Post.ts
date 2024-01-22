@@ -13,7 +13,7 @@ export class Post {
     @Column({ type: "varchar", length: 3200 })
     content: string;
 
-    @Column()
+    @Column({length: 3200})
     photo: string;
 
     @Column()

@@ -9,7 +9,6 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { AppDataSource } from "./data-source"
 import { Post } from "./entity/Post"
 import { User } from "./entity/User"
-import { time } from "console";
 
 require('dotenv').config()
 
@@ -89,9 +88,17 @@ app.post("/posts", authenticateToken, upload.single('image'), async function (re
     await s3.send(command)
 
     const photo = await `https://${bucketName}.s3-${bucketRegion}.amazonaws.com/${imageName}`;
-    const post = await AppDataSource.getRepository(Post).create({title: req.body.title, content: req.body.content, photo: photo, imageName: imageName})
+    
+    const getObjectParams = {
+        Bucket: bucketName,
+        Key: imageName,
+    }
+    const postCommand = new GetObjectCommand(getObjectParams);
+    const url = await getSignedUrl(s3, postCommand, { expiresIn: 6400 });
+    const postPhoto = await url
+    const post = await AppDataSource.getRepository(Post).create({title: req.body.title, content: req.body.content, photo: postPhoto, imageName: imageName})
     const results = await AppDataSource.getRepository(Post).save({...post, user: user})
-    // console.log("from create api backend", post)
+  
     return res.send(results)
 })
 
@@ -135,10 +142,10 @@ app.get("/user/posts", authenticateToken, async function (req: Request, res: Res
         }
         const command = new GetObjectCommand(getObjectParams);
         const url = await getSignedUrl(s3, command, { expiresIn: 6400 });
-        post.photo = url
+        post.photo = await url
     }
     for (const post of posts) {
-        const timestamp = moment(post.created_at).tz("Asia/Singapore").format("YYYY-MM-DD HH:mm:ss")
+        const timestamp = await moment(post.created_at).tz("Asia/Singapore").format("YYYY-MM-DD HH:mm:ss")
         post.created_at = timestamp
         post.updated_at = timestamp
     }
@@ -148,9 +155,9 @@ app.get("/user/posts", authenticateToken, async function (req: Request, res: Res
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization']
     const token = authHeader && authHeader.split(' ')[1]
-    if (token == null) return res.sendStatus(402)
+    // if (token == null) return res.sendStatus(402)
+    if (token == null) return res.status(402).send('Something broke!')
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
-        console.log(err)
         if (err) return res.sendStatus(403)
         req.user = user
         next()
